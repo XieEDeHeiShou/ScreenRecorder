@@ -160,8 +160,11 @@ public class MainActivity extends Activity {
                 return;
             }
             SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US);
-            final File file = new File(dir, "Screen-" + format.format(new Date())
-                    + "-" + video.width + "x" + video.height + ".mp4");
+            final File file = new File(dir, format.format(new Date())
+                    + "-w" + video.width + "-h" + video.height
+                    + "-b" + video.bitrate
+                    + "-f" + video.framerate
+                    + ".mp4");
             Log.d("@@", "Create recorder with :" + video + " \n " + audio + "\n " + file);
             mRecorder = newRecorder(mediaProjection, video, audio, file);
             if (hasPermissions()) {
