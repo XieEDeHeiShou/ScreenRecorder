@@ -34,6 +34,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.Looper;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
@@ -169,6 +170,10 @@ public class MainActivity extends Activity {
             mRecorder = newRecorder(mediaProjection, video, audio, file);
             if (hasPermissions()) {
                 startRecorder();
+                // automatically stop record for test
+                if (BuildConfig.DEBUG) {
+                    new Handler(Looper.getMainLooper()).postDelayed(this::stopRecorder, 5000);
+                }
             } else {
                 cancelRecorder();
             }
