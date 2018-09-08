@@ -27,6 +27,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.support.annotation.Nullable;
 import android.util.Log;
 import android.util.SparseLongArray;
 
@@ -69,11 +70,6 @@ class MicRecorder implements Encoder {
         mChannelConfig = config.channelCount == 2 ? AudioFormat.CHANNEL_IN_STEREO : AudioFormat.CHANNEL_IN_MONO;
         mRecordThread = new HandlerThread(TAG);
     }
-
-//    @Override
-//    public void setCallback(OnErrorCallback onErrorCallback) {
-//        this.mCallback = (BaseEncoder.Callback) onErrorCallback;
-//    }
 
     public void setCallback(BaseEncoder.Callback callback) {
         this.mCallback = callback;
@@ -331,6 +327,7 @@ class MicRecorder implements Encoder {
         return currentUs;
     }
 
+    @Nullable
     private static AudioRecord createAudioRecord(int sampleRateInHz, int channelConfig, int audioFormat) {
         int minBytes = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat);
         if (minBytes <= 0) {
