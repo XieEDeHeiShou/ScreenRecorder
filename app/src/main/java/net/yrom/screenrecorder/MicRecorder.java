@@ -55,7 +55,6 @@ class MicRecorder implements Encoder {
     private AudioRecord mMic; // access in mRecordThread only!
     private int mSampleRate;
     private int mChannelConfig;
-    private int mFormat = AudioFormat.ENCODING_PCM_16BIT;
 
     private AtomicBoolean mForceStop = new AtomicBoolean(false);
     private BaseEncoder.Callback mCallback;
@@ -171,7 +170,7 @@ class MicRecorder implements Encoder {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case MSG_PREPARE:
-                    AudioRecord r = createAudioRecord(mSampleRate, mChannelConfig, mFormat);
+                    AudioRecord r = createAudioRecord(mSampleRate, mChannelConfig, AudioFormat.ENCODING_PCM_16BIT);
                     if (r == null) {
                         Log.e(TAG, "create audio record failure");
                         mCallbackDelegate.onError(MicRecorder.this, new IllegalArgumentException());
