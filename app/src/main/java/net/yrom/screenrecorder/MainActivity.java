@@ -84,7 +84,6 @@ public class MainActivity extends Activity {
     private NamedSpinner mOrientation;
     private MediaCodecInfo[] mAvcCodecInfos; // avc codecs
     private MediaCodecInfo[] mAacCodecInfos; // aac codecs
-    private Notifications mNotifications;
 
     /**
      * <b>NOTE:</b>
@@ -98,7 +97,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mMediaProjectionManager = (MediaProjectionManager) getApplicationContext().getSystemService(MEDIA_PROJECTION_SERVICE);
-        mNotifications = new Notifications(getApplicationContext());
+
         bindViews();
 
         Utils.findEncodersByTypeAsync(VIDEO_AVC, infos -> {
@@ -185,6 +184,7 @@ public class MainActivity extends Activity {
         ScreenRecorder r = new ScreenRecorder(video, audio,
                 1, mediaProjection, output.getAbsolutePath());
         r.setCallback(new ScreenRecorder.Callback() {
+            private static final String TAG = "ScreenRecorder.Callback";
             long startTime = 0;
 
             @Override
@@ -204,7 +204,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onStart() {
-                mNotifications.recording(0);
+                Log.d(TAG, "onStart: ");
             }
 
             @Override
@@ -213,7 +213,7 @@ public class MainActivity extends Activity {
                     startTime = presentationTimeUs;
                 }
                 long time = (presentationTimeUs - startTime) / 1000;
-                mNotifications.recording(time);
+                Log.d(TAG, "onRecording: " + time);
             }
         });
         return r;
@@ -353,7 +353,6 @@ public class MainActivity extends Activity {
     }
 
     private void stopRecorder() {
-        mNotifications.clear();
         if (mRecorder != null) {
             mRecorder.quit();
         }
