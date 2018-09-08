@@ -18,11 +18,7 @@ package net.yrom.screenrecorder;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.ActivityNotFoundException;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
@@ -36,7 +32,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.util.Range;
@@ -348,7 +343,6 @@ public class MainActivity extends Activity {
         if (mRecorder == null) return;
         mRecorder.start();
         mButton.setText("Stop Recorder");
-        registerReceiver(mStopActionReceiver, new IntentFilter(ACTION_STOP));
         moveTaskToBack(true);
     }
 
@@ -358,11 +352,6 @@ public class MainActivity extends Activity {
         }
         mRecorder = null;
         mButton.setText("Restart recorder");
-        try {
-            unregisterReceiver(mStopActionReceiver);
-        } catch (Exception e) {
-            //ignored
-        }
     }
 
     private void cancelRecorder() {
@@ -838,36 +827,5 @@ public class MainActivity extends Activity {
     }
 
     static final String ACTION_STOP = "net.yrom.screenrecorder.action.STOP";
-
-    private BroadcastReceiver mStopActionReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            File file = new File(mRecorder.getSavedPath());
-            if (ACTION_STOP.equals(intent.getAction())) {
-                stopRecorder();
-            }
-            Toast.makeText(context, "Recorder stopped!\n Saved file " + file, Toast.LENGTH_LONG).show();
-            StrictMode.VmPolicy vmPolicy = StrictMode.getVmPolicy();
-            try {
-                // disable detecting FileUriExposure on public file
-                StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder().build());
-                viewResult(file);
-            } finally {
-                StrictMode.setVmPolicy(vmPolicy);
-            }
-        }
-
-        private void viewResult(File file) {
-            Intent view = new Intent(Intent.ACTION_VIEW);
-            view.addCategory(Intent.CATEGORY_DEFAULT);
-            view.setDataAndType(Uri.fromFile(file), VIDEO_AVC);
-            view.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                startActivity(view);
-            } catch (ActivityNotFoundException e) {
-                // no activity can open this video
-            }
-        }
-    };
 
 }
