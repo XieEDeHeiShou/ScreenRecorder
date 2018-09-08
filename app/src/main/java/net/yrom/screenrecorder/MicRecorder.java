@@ -30,7 +30,6 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.util.SparseLongArray;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.Locale;
@@ -72,17 +71,17 @@ class MicRecorder implements Encoder {
         mRecordThread = new HandlerThread(TAG);
     }
 
-    @Override
-    public void setCallback(Callback callback) {
-        this.mCallback = (BaseEncoder.Callback) callback;
-    }
+//    @Override
+//    public void setCallback(OnErrorCallback onErrorCallback) {
+//        this.mCallback = (BaseEncoder.Callback) onErrorCallback;
+//    }
 
     public void setCallback(BaseEncoder.Callback callback) {
         this.mCallback = callback;
     }
 
     @Override
-    public void prepare() throws IOException {
+    public void prepare() {
         Looper myLooper = Objects.requireNonNull(Looper.myLooper(), "Should prepare in HandlerThread");
         // run callback in caller thread
         mCallbackDelegate = new CallbackDelegate(myLooper, mCallback);

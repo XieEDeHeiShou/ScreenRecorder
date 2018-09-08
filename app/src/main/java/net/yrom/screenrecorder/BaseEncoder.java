@@ -30,7 +30,7 @@ import java.util.Objects;
  * @version 2017/12/4
  */
 abstract class BaseEncoder implements Encoder {
-    static abstract class Callback implements Encoder.Callback {
+    static abstract class Callback implements OnErrorCallback {
         void onInputBufferAvailable(BaseEncoder encoder, int index) {
         }
 
@@ -41,20 +41,17 @@ abstract class BaseEncoder implements Encoder {
         }
     }
 
-    BaseEncoder() {
-    }
-
     BaseEncoder(String codecName) {
         this.mCodecName = codecName;
     }
 
-    @Override
-    public void setCallback(Encoder.Callback callback) {
-        if (!(callback instanceof Callback)) {
-            throw new IllegalArgumentException();
-        }
-        this.setCallback((Callback) callback);
-    }
+//    @Override
+//    public void setCallback(OnErrorCallback onErrorCallback) {
+//        if (!(onErrorCallback instanceof Callback)) {
+//            throw new IllegalArgumentException();
+//        }
+//        this.setCallback((Callback) onErrorCallback);
+//    }
 
     void setCallback(Callback callback) {
         if (this.mEncoder != null) throw new IllegalStateException("mEncoder is not null");

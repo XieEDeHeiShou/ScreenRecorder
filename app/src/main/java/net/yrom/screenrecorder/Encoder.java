@@ -29,9 +29,10 @@ interface Encoder {
 
     void release();
 
-    void setCallback(Callback callback);
+//    @Deprecated
+//    void setCallback(OnErrorCallback onErrorCallback);
 
-    interface Callback {
+    interface OnErrorCallback {
         void onError(Encoder encoder, Exception exception);
     }
 }
