@@ -37,7 +37,6 @@ import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
-import android.util.Range;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -52,13 +51,11 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 import static android.Manifest.permission.RECORD_AUDIO;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.os.Build.VERSION_CODES.M;
-import static net.yrom.screenrecorder.ScreenRecorder.AUDIO_AAC;
 import static net.yrom.screenrecorder.ScreenRecorder.VIDEO_AVC;
 
 public class MainActivity extends Activity {
@@ -72,15 +69,10 @@ public class MainActivity extends Activity {
     private NamedSpinner mVideoResolution;
     private NamedSpinner mVideoFrameRate;
     private NamedSpinner mVideoBitrate;
-    private NamedSpinner mAudioBitrate;
-    private NamedSpinner mAudioSampleRate;
-    private NamedSpinner mAudioChannelCount;
     private NamedSpinner mVideoCodec;
-    private NamedSpinner mAudioCodec;
-    private NamedSpinner mAudioProfile;
+    private NamedSpinner mVideoProfileLevel;
     private NamedSpinner mOrientation;
     private MediaCodecInfo[] mAvcCodecs; // avc codecs
-    private MediaCodecInfo[] mAacCodecs; // aac codecs
     /**
      * <b>NOTE:</b>
      * {@code ScreenRecorder} should run in background Service
@@ -219,13 +211,7 @@ public class MainActivity extends Activity {
             restoreSelections(mVideoCodec, mVideoResolution, mVideoFrameRate, mVideoBitrate);
 
         });
-        Utils.findEncodersByTypeAsync(AUDIO_AAC, codecs -> {
-            logCodecs(codecs, AUDIO_AAC);
-            mAacCodecs = codecs;
-            SpinnerAdapter codecsAdapter = createCodecsAdapter(mAacCodecs);
-            mAudioCodec.setAdapter(codecsAdapter);
-            restoreSelections(mAudioCodec, mAudioChannelCount);
-        });
+
         mAudioToggle.setChecked(
                 PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
                         .getBoolean(getResources().getResourceEntryName(mAudioToggle.getId()), true));
@@ -278,16 +264,7 @@ public class MainActivity extends Activity {
     @Nullable
     private AudioEncodeConfig createAudioConfig() {
         if (!mAudioToggle.isChecked()) return null;
-        String codec = getSelectedAudioCodec();
-        if (codec == null) {
-            return null;
-        }
-        int bitrate = getSelectedAudioBitrate();
-        int sampleRate = getSelectedAudioSampleRate();
-        int channelCount = getSelectedAudioChannelCount();
-        int profile = getSelectedAudioProfile();
-
-        return new AudioEncodeConfig(codec, AUDIO_AAC, bitrate, sampleRate, channelCount, profile);
+        return new AudioEncodeConfig();
     }
 
     @Override
@@ -316,8 +293,10 @@ public class MainActivity extends Activity {
         int height = selectedWithHeight[isLandscape ? 1 : 0];
         int frameRate = getSelectedFrameRate();
         int bitrate = getSelectedVideoBitrate();
+        MediaCodecInfo.CodecProfileLevel profileLevel = getSelectedProfileLevel();
+        Log.e(TAG, "createVideoConfig: " + profileLevel);
         return new VideoEncodeConfig(width, height, bitrate,
-                frameRate, codec, VIDEO_AVC);
+                frameRate, codec, VIDEO_AVC, profileLevel);
     }
 
     @Override
@@ -345,24 +324,15 @@ public class MainActivity extends Activity {
         mVideoBitrate = findViewById(R.id.video_bitrate);
         mOrientation = findViewById(R.id.orientation);
 
-        mAudioCodec = findViewById(R.id.audio_codec);
-        mAudioBitrate = findViewById(R.id.audio_bitrate);
-        mAudioSampleRate = findViewById(R.id.sample_rate);
-        mAudioProfile = findViewById(R.id.aac_profile);
-        mAudioChannelCount = findViewById(R.id.audio_channel_count);
+        mVideoProfileLevel = findViewById(R.id.avc_profile);
 
         mAudioToggle = findViewById(R.id.with_audio);
-        mAudioToggle.setOnCheckedChangeListener((buttonView, isChecked) ->
-                findViewById(R.id.audio_format_chooser)
-                        .setVisibility(isChecked ? View.VISIBLE : View.GONE)
-        );
 
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
             mOrientation.setSelectedPosition(1);
         }
 
-        mVideoCodec.setOnItemSelectedListener(null);
-        mAudioCodec.setOnItemSelectedListener((view, position) -> onAudioCodecSelected(view.getSelectedItem()));
+        mVideoCodec.setOnItemSelectedListener((view, position) -> onVideoCodecSelected(view.getSelectedItem()));
         mVideoResolution.setOnItemSelectedListener((view, position) -> {
             if (position == 0) return;
             onResolutionChanged(position, view.getSelectedItem());
@@ -459,7 +429,7 @@ public class MainActivity extends Activity {
         int width = Integer.parseInt(xes[isLandscape ? 0 : 1]);
         int height = Integer.parseInt(xes[isLandscape ? 1 : 0]);
 
-        double selectedFrameRate = getSelectedFrameRate();
+        double selectedFramerate = getSelectedFrameRate();
         int resetPos = Math.max(selectedPosition - 1, 0);
         if (!videoCapabilities.isSizeSupported(width, height)) {
             mVideoResolution.setSelectedPosition(resetPos);
@@ -468,10 +438,10 @@ public class MainActivity extends Activity {
             Log.w("@@", codecName +
                     " height range: " + videoCapabilities.getSupportedHeights() +
                     "\n width range: " + videoCapabilities.getSupportedHeights());
-        } else if (!videoCapabilities.areSizeAndRateSupported(width, height, selectedFrameRate)) {
+        } else if (!videoCapabilities.areSizeAndRateSupported(width, height, selectedFramerate)) {
             mVideoResolution.setSelectedPosition(resetPos);
             toast("codec '%s' unsupported size %dx%d(%s)\nwith frameRate %d",
-                    codecName, width, height, mOrientation.getSelectedItem(), (int) selectedFrameRate);
+                    codecName, width, height, mOrientation.getSelectedItem(), (int) selectedFramerate);
         }
     }
 
@@ -541,95 +511,44 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void onAudioCodecSelected(@NonNull String codecName) {
-        MediaCodecInfo codec = getAudioCodecInfo(codecName);
+    private void onVideoCodecSelected(@NonNull String codecName) {
+        MediaCodecInfo codec = getVideoCodecInfo(codecName);
         if (codec == null) {
-            mAudioProfile.setAdapter(null);
-            mAudioSampleRate.setAdapter(null);
-            mAudioBitrate.setAdapter(null);
+            mVideoProfileLevel.setAdapter(null);
             return;
         }
-        MediaCodecInfo.CodecCapabilities capabilities = codec.getCapabilitiesForType(AUDIO_AAC);
+        MediaCodecInfo.CodecCapabilities capabilities = codec.getCapabilitiesForType(VIDEO_AVC);
 
-        resetAudioBitrateAdapter(capabilities);
-        resetSampleRateAdapter(capabilities);
-        resetAacProfileAdapter();
-        restoreSelections(mAudioBitrate, mAudioSampleRate, mAudioProfile);
+        resetAvcProfileLevelAdapter(capabilities);
     }
 
-    private void resetAacProfileAdapter() {
-        String[] profiles = Utils.aacProfiles();
-        SpinnerAdapter old = mAudioProfile.getAdapter();
+    private void resetAvcProfileLevelAdapter(@NonNull MediaCodecInfo.CodecCapabilities capabilities) {
+        MediaCodecInfo.CodecProfileLevel[] profiles = capabilities.profileLevels;
+        if (profiles == null || profiles.length == 0) {
+            mVideoProfileLevel.setEnabled(false);
+            return;
+        }
+        mVideoProfileLevel.setEnabled(true);
+        String[] profileLevels = new String[profiles.length + 1];
+        profileLevels[0] = "Default";
+        for (int i = 0; i < profiles.length; i++) {
+            profileLevels[i + 1] = Utils.avcProfileLevelToString(profiles[i]);
+        }
+
+        SpinnerAdapter old = mVideoProfileLevel.getAdapter();
         if (old == null || !(old instanceof ArrayAdapter)) {
             ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            adapter.addAll(profiles);
-            mAudioProfile.setAdapter(adapter);
+            adapter.addAll(profileLevels);
+            mVideoProfileLevel.setAdapter(adapter);
         } else {
             //noinspection unchecked
             ArrayAdapter<String> adapter = (ArrayAdapter<String>) old;
             adapter.setNotifyOnChange(false);
             adapter.clear();
-            adapter.addAll(profiles);
+            adapter.addAll(profileLevels);
             adapter.notifyDataSetChanged();
         }
-
-    }
-
-    private void resetSampleRateAdapter(@NonNull MediaCodecInfo.CodecCapabilities capabilities) {
-        int[] sampleRates = capabilities.getAudioCapabilities().getSupportedSampleRates();
-        List<Integer> rates = new ArrayList<>(sampleRates.length);
-        int preferred = -1;
-        for (int i = 0; i < sampleRates.length; i++) {
-            int sampleRate = sampleRates[i];
-            if (sampleRate == 44100) {
-                preferred = i;
-            }
-            rates.add(sampleRate);
-        }
-
-        SpinnerAdapter old = mAudioSampleRate.getAdapter();
-        if (old == null || !(old instanceof ArrayAdapter)) {
-            ArrayAdapter<Integer> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            adapter.addAll(rates);
-            mAudioSampleRate.setAdapter(adapter);
-        } else {
-            //noinspection unchecked
-            ArrayAdapter<Integer> adapter = (ArrayAdapter<Integer>) old;
-            adapter.setNotifyOnChange(false);
-            adapter.clear();
-            adapter.addAll(rates);
-            adapter.notifyDataSetChanged();
-        }
-        mAudioSampleRate.setSelectedPosition(preferred);
-    }
-
-    private void resetAudioBitrateAdapter(@NonNull MediaCodecInfo.CodecCapabilities capabilities) {
-        Range<Integer> bitrateRange = capabilities.getAudioCapabilities().getBitrateRange();
-        int lower = Math.max(bitrateRange.getLower() / 1000, 80);
-        int upper = bitrateRange.getUpper() / 1000;
-        List<Integer> rates = new ArrayList<>();
-        for (int rate = lower; rate < upper; rate += lower) {
-            rates.add(rate);
-        }
-        rates.add(upper);
-
-        SpinnerAdapter old = mAudioBitrate.getAdapter();
-        if (old == null || !(old instanceof ArrayAdapter)) {
-            ArrayAdapter<Integer> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            adapter.addAll(rates);
-            mAudioBitrate.setAdapter(adapter);
-        } else {
-            //noinspection unchecked
-            ArrayAdapter<Integer> adapter = (ArrayAdapter<Integer>) old;
-            adapter.setNotifyOnChange(false);
-            adapter.clear();
-            adapter.addAll(rates);
-            adapter.notifyDataSetChanged();
-        }
-        mAudioSampleRate.setSelectedPosition(rates.size() / 2);
     }
 
     @Nullable
@@ -640,23 +559,6 @@ public class MainActivity extends Activity {
         }
         MediaCodecInfo codec = null;
         for (MediaCodecInfo info : mAvcCodecs) {
-            if (info.getName().equals(codecName)) {
-                codec = info;
-                break;
-            }
-        }
-        if (codec == null) return null;
-        return codec;
-    }
-
-    @Nullable
-    private MediaCodecInfo getAudioCodecInfo(@Nullable String codecName) {
-        if (codecName == null) return null;
-        if (mAacCodecs == null) {
-            mAacCodecs = Utils.findEncodersByType(AUDIO_AAC);
-        }
-        MediaCodecInfo codec = null;
-        for (MediaCodecInfo info : mAacCodecs) {
             if (info.getName().equals(codecName)) {
                 codec = info;
                 break;
@@ -693,11 +595,11 @@ public class MainActivity extends Activity {
         return Integer.parseInt(mVideoFrameRate.getSelectedItem());
     }
 
-    private int getSelectedAudioBitrate() {
-        if (mAudioBitrate == null) throw new IllegalStateException();
-        Integer selectedItem = mAudioBitrate.getSelectedItem();
-        return selectedItem * 1000; // bps
+    @Nullable
+    private MediaCodecInfo.CodecProfileLevel getSelectedProfileLevel() {
+        return mVideoProfileLevel != null ? Utils.toProfileLevel(mVideoProfileLevel.getSelectedItem()) : null;
     }
+
 
     @NonNull
     private int[] getSelectedWithHeight() {
@@ -707,29 +609,6 @@ public class MainActivity extends Activity {
         if (xes.length != 2) throw new IllegalArgumentException();
         return new int[]{Integer.parseInt(xes[0]), Integer.parseInt(xes[1])};
 
-    }
-
-    private int getSelectedAudioProfile() {
-        if (mAudioProfile == null) throw new IllegalStateException();
-        String selectedItem = mAudioProfile.getSelectedItem();
-        MediaCodecInfo.CodecProfileLevel profileLevel = Utils.toProfileLevel(selectedItem);
-        return profileLevel == null ? MediaCodecInfo.CodecProfileLevel.AACObjectMain : profileLevel.profile;
-    }
-
-    private int getSelectedAudioChannelCount() {
-        if (mAudioChannelCount == null) throw new IllegalStateException();
-        String selectedItem = mAudioChannelCount.getSelectedItem().toString();
-        return Integer.parseInt(selectedItem);
-    }
-
-    @Nullable
-    private String getSelectedAudioCodec() {
-        return mAudioCodec == null ? null : mAudioCodec.getSelectedItem();
-    }
-
-    private int getSelectedAudioSampleRate() {
-        if (mAudioSampleRate == null) throw new IllegalStateException();
-        return mAudioSampleRate.getSelectedItem();
     }
 
     private void toast(@NonNull String message, @NonNull Object... args) {
@@ -759,12 +638,7 @@ public class MainActivity extends Activity {
                 mVideoResolution,
                 mVideoFrameRate,
                 mVideoBitrate,
-                mAudioBitrate,
-                mAudioSampleRate,
-                mAudioChannelCount,
                 mVideoCodec,
-                mAudioCodec,
-                mAudioProfile,
         }) {
             saveSelectionToPreferences(edit, spinner);
         }

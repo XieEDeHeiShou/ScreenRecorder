@@ -17,16 +17,17 @@
 package net.yrom.screenrecorder;
 
 import android.media.MediaFormat;
+import android.support.annotation.NonNull;
 
 /**
  * @author yrom
  * @version 2017/12/3
  */
-class AudioEncoder extends BaseEncoder {
+public class AudioEncoder extends BaseEncoder {
     private final AudioEncodeConfig mConfig;
 
-    AudioEncoder(AudioEncodeConfig config) {
-        super(config.codecName);
+    public AudioEncoder(@NonNull AudioEncodeConfig config) {
+        super(config.getCodecName());
         this.mConfig = config;
     }
 
