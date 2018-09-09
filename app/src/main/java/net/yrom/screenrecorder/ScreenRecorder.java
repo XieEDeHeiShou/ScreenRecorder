@@ -26,6 +26,8 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.io.IOException;
@@ -80,10 +82,11 @@ public class ScreenRecorder {
     /**
      * @param dpi for {@link VirtualDisplay}
      */
-    public ScreenRecorder(VideoEncodeConfig video,
-                          AudioEncodeConfig audio,
-                          int dpi, MediaProjection mp,
-                          String dstPath) {
+    public ScreenRecorder(@NonNull VideoEncodeConfig video,
+                          @Nullable AudioEncodeConfig audio,
+                          int dpi,
+                          @NonNull MediaProjection mp,
+                          @NonNull String dstPath) {
         mWidth = video.width;
         mHeight = video.height;
         mDpi = dpi;
@@ -392,7 +395,7 @@ public class ScreenRecorder {
         mVideoEncoder.prepare();
     }
 
-    private void prepareAudioEncoder() throws IOException {
+    private void prepareAudioEncoder() {
         final MicRecorder micRecorder = mAudioEncoder;
         if (micRecorder == null) return;
         AudioEncoder.Callback callback = new AudioEncoder.Callback() {
@@ -499,7 +502,7 @@ public class ScreenRecorder {
     }
 
     @Override
-    protected void finalize() throws Throwable {
+    protected void finalize() {
         if (mMediaProjection != null) {
             Log.e(TAG, "release() not called!");
             release();
