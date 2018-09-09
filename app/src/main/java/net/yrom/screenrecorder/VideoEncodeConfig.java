@@ -19,7 +19,6 @@ package net.yrom.screenrecorder;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import java.util.Objects;
 
@@ -36,28 +35,23 @@ public class VideoEncodeConfig {
     private final String codecName;
     @NonNull
     private final String mimeType;
-    @Nullable
-    private final MediaCodecInfo.CodecProfileLevel codecProfileLevel;
 
     /**
      * @param codecName         selected codec name, maybe null
      * @param mimeType          video MIME type, cannot be null
-     * @param codecProfileLevel profile level for video encoder nullable
      */
     public VideoEncodeConfig(int width,
                              int height,
                              int bitrate,
                              int frameRate,
                              @NonNull String codecName,
-                             @NonNull String mimeType,
-                             @Nullable MediaCodecInfo.CodecProfileLevel codecProfileLevel) {
+                             @NonNull String mimeType) {
         this.width = width;
         this.height = height;
         this.bitrate = bitrate;
         this.frameRate = frameRate;
         this.codecName = codecName;
         this.mimeType = Objects.requireNonNull(mimeType);
-        this.codecProfileLevel = codecProfileLevel;
     }
 
     @NonNull
@@ -67,10 +61,6 @@ public class VideoEncodeConfig {
         format.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
         format.setInteger(MediaFormat.KEY_FRAME_RATE, frameRate);
         format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, frameRate);
-        if (codecProfileLevel != null && codecProfileLevel.profile != 0 && codecProfileLevel.level != 0) {
-            format.setInteger(MediaFormat.KEY_PROFILE, codecProfileLevel.profile);
-            format.setInteger("level", codecProfileLevel.level);
-        }
         // maybe useful
         // format.setInteger(MediaFormat.KEY_REPEAT_PREVIOUS_FRAME_AFTER, 10_000_000);
         return format;
@@ -102,10 +92,6 @@ public class VideoEncodeConfig {
         return mimeType;
     }
 
-    @Nullable
-    public MediaCodecInfo.CodecProfileLevel getCodecProfileLevel() {
-        return codecProfileLevel;
-    }
 
     @Override
     public String toString() {
@@ -116,7 +102,6 @@ public class VideoEncodeConfig {
                 ", frameRate=" + frameRate +
                 ", codecName='" + codecName + '\'' +
                 ", mimeType='" + mimeType + '\'' +
-                ", codecProfileLevel=" + (codecProfileLevel == null ? "" : Utils.avcProfileLevelToString(codecProfileLevel)) +
                 '}';
     }
 }

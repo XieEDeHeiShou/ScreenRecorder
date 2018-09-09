@@ -56,13 +56,6 @@
                 android:entries="@array/video_framerates" />
 
             <net.yrom.screenrecorder.view.NamedSpinner
-                android:id="@+id/avc_profile"
-                android:name="AVCProfile"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp" />
-
-            <net.yrom.screenrecorder.view.NamedSpinner
                 android:id="@+id/orientation"
                 android:name="Orientation"
                 android:layout_width="wrap_content"
