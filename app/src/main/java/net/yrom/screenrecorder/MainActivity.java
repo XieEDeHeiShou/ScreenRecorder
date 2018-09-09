@@ -64,7 +64,6 @@ public class MainActivity extends Activity {
     private Button mButton;
     private ToggleButton mAudioToggle;
     private NamedSpinner mVideoResolution;
-    private NamedSpinner mVideoFrameRate;
     private NamedSpinner mVideoBitrate;
     private NamedSpinner mOrientation;
     private MediaCodecInfo[] mAvcCodecs; // avc codecs
@@ -187,7 +186,7 @@ public class MainActivity extends Activity {
         Utils.findEncodersByTypeAsync(VIDEO_AVC, codecs -> {
             logCodecs(codecs, VIDEO_AVC);
             mAvcCodecs = codecs;
-            restoreSelections(mVideoResolution, mVideoFrameRate, mVideoBitrate);
+            restoreSelections(mVideoResolution, mVideoBitrate);
 
         });
 
@@ -290,7 +289,6 @@ public class MainActivity extends Activity {
         mButton.setOnClickListener(this::onButtonClick);
 
         mVideoResolution = findViewById(R.id.resolution);
-        mVideoFrameRate = findViewById(R.id.framerate);
         mVideoBitrate = findViewById(R.id.video_bitrate);
         mOrientation = findViewById(R.id.orientation);
 
@@ -304,10 +302,7 @@ public class MainActivity extends Activity {
             if (position == 0) return;
             onResolutionChanged(position, view.getSelectedItem());
         });
-        mVideoFrameRate.setOnItemSelectedListener((view, position) -> {
-            if (position == 0) return;
-            onFramerateChanged(position, view.getSelectedItem());
-        });
+
         mVideoBitrate.setOnItemSelectedListener((view, position) -> {
             if (position == 0) return;
             onBitrateChanged(position, view.getSelectedItem());
@@ -455,29 +450,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void onFramerateChanged(int selectedPosition, @NonNull String rate) {
-        String codecName = getSelectedVideoCodec();
-        MediaCodecInfo codec = getVideoCodecInfo(codecName);
-        if (codec == null) return;
-        MediaCodecInfo.CodecCapabilities capabilities = codec.getCapabilitiesForType(VIDEO_AVC);
-        MediaCodecInfo.VideoCapabilities videoCapabilities = capabilities.getVideoCapabilities();
-        int[] selectedWithHeight = getSelectedWithHeight();
-        int selectedFramerate = Integer.parseInt(rate);
-        boolean isLandscape = isLandscape();
-        int width = selectedWithHeight[isLandscape ? 0 : 1];
-        int height = selectedWithHeight[isLandscape ? 1 : 0];
-
-        int resetPos = Math.max(selectedPosition - 1, 0);
-        if (!videoCapabilities.getSupportedFrameRates().contains(selectedFramerate)) {
-            mVideoFrameRate.setSelectedPosition(resetPos);
-            toast("codec '%s' unsupported frameRate %d", codecName, selectedFramerate);
-        } else if (!videoCapabilities.areSizeAndRateSupported(width, height, selectedFramerate)) {
-            mVideoFrameRate.setSelectedPosition(resetPos);
-            toast("codec '%s' unsupported size %dx%d\nwith frameRate %d",
-                    codecName, width, height, selectedFramerate);
-        }
-    }
-
     @Nullable
     private MediaCodecInfo getVideoCodecInfo(@Nullable String codecName) {
         if (codecName == null) return null;
@@ -511,8 +483,7 @@ public class MainActivity extends Activity {
     }
 
     private int getSelectedFrameRate() {
-        if (mVideoFrameRate == null) throw new IllegalStateException();
-        return Integer.parseInt(mVideoFrameRate.getSelectedItem());
+        return 15;
     }
 
     @NonNull
@@ -550,7 +521,6 @@ public class MainActivity extends Activity {
         SharedPreferences.Editor edit = preferences.edit();
         for (NamedSpinner spinner : new NamedSpinner[]{
                 mVideoResolution,
-                mVideoFrameRate,
                 mVideoBitrate,
         }) {
             saveSelectionToPreferences(edit, spinner);
