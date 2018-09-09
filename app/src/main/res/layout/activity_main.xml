@@ -70,55 +70,6 @@
                 android:layout_marginTop="8dp"
                 android:entries="@array/orientations" />
 
-            <LinearLayout
-                android:id="@+id/audio_format_chooser"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:orientation="vertical">
-
-                <TextView
-                    style="?android:attr/titleTextStyle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Audio Encode Config (H.264 AAC)" />
-
-                <net.yrom.screenrecorder.view.NamedSpinner
-                    android:id="@+id/audio_codec"
-                    android:name="Audio Encoder"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
-
-                <net.yrom.screenrecorder.view.NamedSpinner
-                    android:id="@+id/audio_channel_count"
-                    android:name="Channels"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:entries="@array/audio_channels" />
-
-                <net.yrom.screenrecorder.view.NamedSpinner
-                    android:id="@+id/sample_rate"
-                    android:name="Sample Rate (HZ)"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
-
-                <net.yrom.screenrecorder.view.NamedSpinner
-                    android:id="@+id/audio_bitrate"
-                    android:name="Bitrate (kbps)"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
-
-                <net.yrom.screenrecorder.view.NamedSpinner
-                    android:id="@+id/aac_profile"
-                    android:name="AAC Profile"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
-            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 
