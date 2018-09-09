@@ -48,7 +48,6 @@ import net.yrom.screenrecorder.view.NamedSpinner;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
@@ -70,7 +69,6 @@ public class MainActivity extends Activity {
     private NamedSpinner mVideoFrameRate;
     private NamedSpinner mVideoBitrate;
     private NamedSpinner mVideoCodec;
-    private NamedSpinner mVideoProfileLevel;
     private NamedSpinner mOrientation;
     private MediaCodecInfo[] mAvcCodecs; // avc codecs
     /**
@@ -293,10 +291,8 @@ public class MainActivity extends Activity {
         int height = selectedWithHeight[isLandscape ? 1 : 0];
         int frameRate = getSelectedFrameRate();
         int bitrate = getSelectedVideoBitrate();
-        MediaCodecInfo.CodecProfileLevel profileLevel = getSelectedProfileLevel();
-        Log.e(TAG, "createVideoConfig: " + profileLevel);
         return new VideoEncodeConfig(width, height, bitrate,
-                frameRate, codec, VIDEO_AVC, profileLevel);
+                frameRate, codec, VIDEO_AVC);
     }
 
     @Override
@@ -324,15 +320,13 @@ public class MainActivity extends Activity {
         mVideoBitrate = findViewById(R.id.video_bitrate);
         mOrientation = findViewById(R.id.orientation);
 
-        mVideoProfileLevel = findViewById(R.id.avc_profile);
-
         mAudioToggle = findViewById(R.id.with_audio);
 
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
             mOrientation.setSelectedPosition(1);
         }
 
-        mVideoCodec.setOnItemSelectedListener((view, position) -> onVideoCodecSelected(view.getSelectedItem()));
+        mVideoCodec.setOnItemSelectedListener(null);
         mVideoResolution.setOnItemSelectedListener((view, position) -> {
             if (position == 0) return;
             onResolutionChanged(position, view.getSelectedItem());
@@ -511,46 +505,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void onVideoCodecSelected(@NonNull String codecName) {
-        MediaCodecInfo codec = getVideoCodecInfo(codecName);
-        if (codec == null) {
-            mVideoProfileLevel.setAdapter(null);
-            return;
-        }
-        MediaCodecInfo.CodecCapabilities capabilities = codec.getCapabilitiesForType(VIDEO_AVC);
-
-        resetAvcProfileLevelAdapter(capabilities);
-    }
-
-    private void resetAvcProfileLevelAdapter(@NonNull MediaCodecInfo.CodecCapabilities capabilities) {
-        MediaCodecInfo.CodecProfileLevel[] profiles = capabilities.profileLevels;
-        if (profiles == null || profiles.length == 0) {
-            mVideoProfileLevel.setEnabled(false);
-            return;
-        }
-        mVideoProfileLevel.setEnabled(true);
-        String[] profileLevels = new String[profiles.length + 1];
-        profileLevels[0] = "Default";
-        for (int i = 0; i < profiles.length; i++) {
-            profileLevels[i + 1] = Utils.avcProfileLevelToString(profiles[i]);
-        }
-
-        SpinnerAdapter old = mVideoProfileLevel.getAdapter();
-        if (old == null || !(old instanceof ArrayAdapter)) {
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            adapter.addAll(profileLevels);
-            mVideoProfileLevel.setAdapter(adapter);
-        } else {
-            //noinspection unchecked
-            ArrayAdapter<String> adapter = (ArrayAdapter<String>) old;
-            adapter.setNotifyOnChange(false);
-            adapter.clear();
-            adapter.addAll(profileLevels);
-            adapter.notifyDataSetChanged();
-        }
-    }
-
     @Nullable
     private MediaCodecInfo getVideoCodecInfo(@Nullable String codecName) {
         if (codecName == null) return null;
@@ -594,12 +548,6 @@ public class MainActivity extends Activity {
         if (mVideoFrameRate == null) throw new IllegalStateException();
         return Integer.parseInt(mVideoFrameRate.getSelectedItem());
     }
-
-    @Nullable
-    private MediaCodecInfo.CodecProfileLevel getSelectedProfileLevel() {
-        return mVideoProfileLevel != null ? Utils.toProfileLevel(mVideoProfileLevel.getSelectedItem()) : null;
-    }
-
 
     @NonNull
     private int[] getSelectedWithHeight() {
