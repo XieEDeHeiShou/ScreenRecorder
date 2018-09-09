@@ -34,7 +34,7 @@ class VideoEncoder extends BaseEncoder {
 
 
     VideoEncoder(VideoEncodeConfig config) {
-        super(config.codecName);
+        super(config.getCodecName());
         this.mConfig = config;
     }
 

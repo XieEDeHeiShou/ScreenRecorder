@@ -87,8 +87,8 @@ public class ScreenRecorder {
                           int dpi,
                           @NonNull MediaProjection mp,
                           @NonNull String dstPath) {
-        mWidth = video.width;
-        mHeight = video.height;
+        mWidth = video.getWidth();
+        mHeight = video.getHeight();
         mDpi = dpi;
         mMediaProjection = mp;
         mDstPath = dstPath;
