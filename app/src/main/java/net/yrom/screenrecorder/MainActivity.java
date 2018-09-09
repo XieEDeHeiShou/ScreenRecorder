@@ -846,6 +846,4 @@ public class MainActivity extends Activity {
         }
     }
 
-    static final String ACTION_STOP = "net.yrom.screenrecorder.action.STOP";
-
 }
