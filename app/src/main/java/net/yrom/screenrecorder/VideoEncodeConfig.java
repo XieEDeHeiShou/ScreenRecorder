@@ -18,6 +18,8 @@ package net.yrom.screenrecorder;
 
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.Objects;
 
@@ -26,40 +28,45 @@ import java.util.Objects;
  * @version 2017/12/3
  */
 public class VideoEncodeConfig {
-    final int width;
-    final int height;
-    final int bitrate;
-    final int framerate;
-    final int iframeInterval;
-    final String codecName;
-    final String mimeType;
-    final MediaCodecInfo.CodecProfileLevel codecProfileLevel;
+    private final int width;
+    private final int height;
+    private final int bitrate;
+    private final int frameRate;
+    @NonNull
+    private final String codecName;
+    @NonNull
+    private final String mimeType;
+    @Nullable
+    private final MediaCodecInfo.CodecProfileLevel codecProfileLevel;
 
     /**
      * @param codecName         selected codec name, maybe null
      * @param mimeType          video MIME type, cannot be null
      * @param codecProfileLevel profile level for video encoder nullable
      */
-    public VideoEncodeConfig(int width, int height, int bitrate,
-                             int framerate, int iframeInterval,
-                             String codecName, String mimeType,
-                             MediaCodecInfo.CodecProfileLevel codecProfileLevel) {
+    public VideoEncodeConfig(int width,
+                             int height,
+                             int bitrate,
+                             int frameRate,
+                             @NonNull String codecName,
+                             @NonNull String mimeType,
+                             @Nullable MediaCodecInfo.CodecProfileLevel codecProfileLevel) {
         this.width = width;
         this.height = height;
         this.bitrate = bitrate;
-        this.framerate = framerate;
-        this.iframeInterval = iframeInterval;
+        this.frameRate = frameRate;
         this.codecName = codecName;
         this.mimeType = Objects.requireNonNull(mimeType);
         this.codecProfileLevel = codecProfileLevel;
     }
 
-    MediaFormat toFormat() {
+    @NonNull
+    public MediaFormat toFormat() {
         MediaFormat format = MediaFormat.createVideoFormat(mimeType, width, height);
         format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
         format.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
-        format.setInteger(MediaFormat.KEY_FRAME_RATE, framerate);
-        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, iframeInterval);
+        format.setInteger(MediaFormat.KEY_FRAME_RATE, frameRate);
+        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, frameRate);
         if (codecProfileLevel != null && codecProfileLevel.profile != 0 && codecProfileLevel.level != 0) {
             format.setInteger(MediaFormat.KEY_PROFILE, codecProfileLevel.profile);
             format.setInteger("level", codecProfileLevel.level);
@@ -69,14 +76,44 @@ public class VideoEncodeConfig {
         return format;
     }
 
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public int getBitrate() {
+        return bitrate;
+    }
+
+    public int getFrameRate() {
+        return frameRate;
+    }
+
+    @NonNull
+    public String getCodecName() {
+        return codecName;
+    }
+
+    @NonNull
+    public String getMimeType() {
+        return mimeType;
+    }
+
+    @Nullable
+    public MediaCodecInfo.CodecProfileLevel getCodecProfileLevel() {
+        return codecProfileLevel;
+    }
+
     @Override
     public String toString() {
         return "VideoEncodeConfig{" +
                 "width=" + width +
                 ", height=" + height +
                 ", bitrate=" + bitrate +
-                ", framerate=" + framerate +
-                ", iframeInterval=" + iframeInterval +
+                ", frameRate=" + frameRate +
                 ", codecName='" + codecName + '\'' +
                 ", mimeType='" + mimeType + '\'' +
                 ", codecProfileLevel=" + (codecProfileLevel == null ? "" : Utils.avcProfileLevelToString(codecProfileLevel)) +
