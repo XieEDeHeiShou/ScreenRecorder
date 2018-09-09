@@ -21,9 +21,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.media.MediaCodecInfo;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
@@ -65,7 +63,6 @@ public class MainActivity extends Activity {
     private ToggleButton mAudioToggle;
     private NamedSpinner mVideoResolution;
     private NamedSpinner mVideoBitrate;
-    private NamedSpinner mOrientation;
     private MediaCodecInfo[] mAvcCodecs; // avc codecs
     /**
      * <b>NOTE:</b>
@@ -119,20 +116,6 @@ public class MainActivity extends Activity {
             }
             Log.i("@@@", builder.toString());
         }
-    }
-
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            mOrientation.setSelectedPosition(1);
-        } else {
-            mOrientation.setSelectedPosition(0);
-        }
-        // reset padding
-        int horizontal = (int) getResources().getDimension(R.dimen.activity_horizontal_margin);
-        int vertical = (int) getResources().getDimension(R.dimen.activity_vertical_margin);
-        findViewById(R.id.container).setPadding(horizontal, vertical, horizontal, vertical);
     }
 
     @Override
@@ -261,9 +244,8 @@ public class MainActivity extends Activity {
     private VideoEncodeConfig createVideoConfig() {
         // video size
         int[] selectedWithHeight = getSelectedWithHeight();
-        boolean isLandscape = isLandscape();
-        int width = selectedWithHeight[isLandscape ? 0 : 1];
-        int height = selectedWithHeight[isLandscape ? 1 : 0];
+        int width = selectedWithHeight[1];
+        int height = selectedWithHeight[0];
         int frameRate = getSelectedFrameRate();
         int bitrate = getSelectedVideoBitrate();
         return new VideoEncodeConfig(width, height, bitrate, frameRate);
@@ -290,13 +272,8 @@ public class MainActivity extends Activity {
 
         mVideoResolution = findViewById(R.id.resolution);
         mVideoBitrate = findViewById(R.id.video_bitrate);
-        mOrientation = findViewById(R.id.orientation);
 
         mAudioToggle = findViewById(R.id.with_audio);
-
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            mOrientation.setSelectedPosition(1);
-        }
 
         mVideoResolution.setOnItemSelectedListener((view, position) -> {
             if (position == 0) return;
@@ -306,10 +283,6 @@ public class MainActivity extends Activity {
         mVideoBitrate.setOnItemSelectedListener((view, position) -> {
             if (position == 0) return;
             onBitrateChanged(position, view.getSelectedItem());
-        });
-        mOrientation.setOnItemSelectedListener((view, position) -> {
-            if (position == 0) return;
-            onOrientationChanged(position, view.getSelectedItem());
         });
     }
 
@@ -387,23 +360,22 @@ public class MainActivity extends Activity {
         MediaCodecInfo.VideoCapabilities videoCapabilities = capabilities.getVideoCapabilities();
         String[] xes = resolution.split("x");
         if (xes.length != 2) throw new IllegalArgumentException();
-        boolean isLandscape = isLandscape();
-        int width = Integer.parseInt(xes[isLandscape ? 0 : 1]);
-        int height = Integer.parseInt(xes[isLandscape ? 1 : 0]);
+        int width = Integer.parseInt(xes[1]);
+        int height = Integer.parseInt(xes[0]);
 
-        double selectedFramerate = getSelectedFrameRate();
+        double selectedFrameRate = 15;
         int resetPos = Math.max(selectedPosition - 1, 0);
         if (!videoCapabilities.isSizeSupported(width, height)) {
             mVideoResolution.setSelectedPosition(resetPos);
             toast("codec '%s' unsupported size %dx%d (%s)",
-                    codecName, width, height, mOrientation.getSelectedItem());
+                    codecName, width, height, "Portrait");
             Log.w("@@", codecName +
                     " height range: " + videoCapabilities.getSupportedHeights() +
                     "\n width range: " + videoCapabilities.getSupportedHeights());
-        } else if (!videoCapabilities.areSizeAndRateSupported(width, height, selectedFramerate)) {
+        } else if (!videoCapabilities.areSizeAndRateSupported(width, height, selectedFrameRate)) {
             mVideoResolution.setSelectedPosition(resetPos);
             toast("codec '%s' unsupported size %dx%d(%s)\nwith frameRate %d",
-                    codecName, width, height, mOrientation.getSelectedItem(), (int) selectedFramerate);
+                    codecName, width, height, "Portrait", (int) selectedFrameRate);
         }
     }
 
@@ -424,32 +396,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void onOrientationChanged(int selectedPosition, @NonNull String orientation) {
-        String codecName = getSelectedVideoCodec();
-        MediaCodecInfo codec = getVideoCodecInfo(codecName);
-        if (codec == null) return;
-        MediaCodecInfo.CodecCapabilities capabilities = codec.getCapabilitiesForType(VIDEO_AVC);
-        MediaCodecInfo.VideoCapabilities videoCapabilities = capabilities.getVideoCapabilities();
-        int[] selectedWithHeight = getSelectedWithHeight();
-        boolean isLandscape = selectedPosition == 1;
-        int width = selectedWithHeight[isLandscape ? 0 : 1];
-        int height = selectedWithHeight[isLandscape ? 1 : 0];
-        int resetPos = Math.max(mVideoResolution.getSelectedItemPosition() - 1, 0);
-        if (!videoCapabilities.isSizeSupported(width, height)) {
-            mVideoResolution.setSelectedPosition(resetPos);
-            toast("codec '%s' unsupported size %dx%d (%s)",
-                    codecName, width, height, orientation);
-            return;
-        }
-
-        int current = getResources().getConfiguration().orientation;
-        if (isLandscape && current == Configuration.ORIENTATION_PORTRAIT) {
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        } else if (!isLandscape && current == Configuration.ORIENTATION_PORTRAIT) {
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        }
-    }
-
     @Nullable
     private MediaCodecInfo getVideoCodecInfo(@Nullable String codecName) {
         if (codecName == null) return null;
@@ -465,10 +411,6 @@ public class MainActivity extends Activity {
         }
         if (codec == null) return null;
         return codec;
-    }
-
-    private boolean isLandscape() {
-        return mOrientation != null && mOrientation.getSelectedItemPosition() == 1;
     }
 
     @NonNull
