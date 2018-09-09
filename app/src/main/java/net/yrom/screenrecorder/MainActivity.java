@@ -38,9 +38,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.SpinnerAdapter;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
@@ -68,7 +66,6 @@ public class MainActivity extends Activity {
     private NamedSpinner mVideoResolution;
     private NamedSpinner mVideoFrameRate;
     private NamedSpinner mVideoBitrate;
-    private NamedSpinner mVideoCodec;
     private NamedSpinner mOrientation;
     private MediaCodecInfo[] mAvcCodecs; // avc codecs
     /**
@@ -82,15 +79,6 @@ public class MainActivity extends Activity {
     private static File getSavingDir() {
         return new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES),
                 "ScreenCaptures");
-    }
-
-    @NonNull
-    private static String[] codecInfoNames(@NonNull MediaCodecInfo[] codecs) {
-        String[] names = new String[codecs.length];
-        for (int i = 0; i < codecs.length; i++) {
-            names[i] = codecs[i].getName();
-        }
-        return names;
     }
 
     /**
@@ -162,11 +150,6 @@ public class MainActivity extends Activity {
 
             VideoEncodeConfig video = createVideoConfig();
             AudioEncodeConfig audio = createAudioConfig(); // audio can be null
-            if (video == null) {
-                toast("Create ScreenRecorder failure");
-                mediaProjection.stop();
-                return;
-            }
 
             File dir = getSavingDir();
             if (!dir.exists() && !dir.mkdirs()) {
@@ -204,9 +187,7 @@ public class MainActivity extends Activity {
         Utils.findEncodersByTypeAsync(VIDEO_AVC, codecs -> {
             logCodecs(codecs, VIDEO_AVC);
             mAvcCodecs = codecs;
-            SpinnerAdapter codecsAdapter = createCodecsAdapter(mAvcCodecs);
-            mVideoCodec.setAdapter(codecsAdapter);
-            restoreSelections(mVideoCodec, mVideoResolution, mVideoFrameRate, mVideoBitrate);
+            restoreSelections(mVideoResolution, mVideoFrameRate, mVideoBitrate);
 
         });
 
@@ -277,13 +258,8 @@ public class MainActivity extends Activity {
         startActivityForResult(captureIntent, REQUEST_MEDIA_PROJECTION);
     }
 
-    @Nullable
+    @NonNull
     private VideoEncodeConfig createVideoConfig() {
-        final String codec = getSelectedVideoCodec();
-        if (codec == null) {
-            // no selected codec ??
-            return null;
-        }
         // video size
         int[] selectedWithHeight = getSelectedWithHeight();
         boolean isLandscape = isLandscape();
@@ -291,8 +267,7 @@ public class MainActivity extends Activity {
         int height = selectedWithHeight[isLandscape ? 1 : 0];
         int frameRate = getSelectedFrameRate();
         int bitrate = getSelectedVideoBitrate();
-        return new VideoEncodeConfig(width, height, bitrate,
-                frameRate, codec, VIDEO_AVC);
+        return new VideoEncodeConfig(width, height, bitrate, frameRate);
     }
 
     @Override
@@ -314,7 +289,6 @@ public class MainActivity extends Activity {
         mButton = findViewById(R.id.record_button);
         mButton.setOnClickListener(this::onButtonClick);
 
-        mVideoCodec = findViewById(R.id.video_codec);
         mVideoResolution = findViewById(R.id.resolution);
         mVideoFrameRate = findViewById(R.id.framerate);
         mVideoBitrate = findViewById(R.id.video_bitrate);
@@ -326,7 +300,6 @@ public class MainActivity extends Activity {
             mOrientation.setSelectedPosition(1);
         }
 
-        mVideoCodec.setOnItemSelectedListener(null);
         mVideoResolution.setOnItemSelectedListener((view, position) -> {
             if (position == 0) return;
             onResolutionChanged(position, view.getSelectedItem());
@@ -526,22 +499,15 @@ public class MainActivity extends Activity {
         return mOrientation != null && mOrientation.getSelectedItemPosition() == 1;
     }
 
-    @Nullable
+    @NonNull
     private String getSelectedVideoCodec() {
-        return mVideoCodec == null ? null : mVideoCodec.getSelectedItem();
+        return "OMX.qcom.video.encoder.avc";
     }
 
     private int getSelectedVideoBitrate() {
         if (mVideoBitrate == null) throw new IllegalStateException();
         String selectedItem = mVideoBitrate.getSelectedItem(); //kbps
         return Integer.parseInt(selectedItem) * 1000;
-    }
-
-    @NonNull
-    private SpinnerAdapter createCodecsAdapter(@NonNull MediaCodecInfo[] codecInfos) {
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, codecInfoNames(codecInfos));
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        return adapter;
     }
 
     private int getSelectedFrameRate() {
@@ -586,7 +552,6 @@ public class MainActivity extends Activity {
                 mVideoResolution,
                 mVideoFrameRate,
                 mVideoBitrate,
-                mVideoCodec,
         }) {
             saveSelectionToPreferences(edit, spinner);
         }

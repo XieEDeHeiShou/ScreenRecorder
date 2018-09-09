@@ -20,8 +20,6 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.support.annotation.NonNull;
 
-import java.util.Objects;
-
 /**
  * @author yrom
  * @version 2017/12/3
@@ -37,21 +35,17 @@ public class VideoEncodeConfig {
     private final String mimeType;
 
     /**
-     * @param codecName         selected codec name, maybe null
-     * @param mimeType          video MIME type, cannot be null
      */
     public VideoEncodeConfig(int width,
                              int height,
                              int bitrate,
-                             int frameRate,
-                             @NonNull String codecName,
-                             @NonNull String mimeType) {
+                             int frameRate) {
         this.width = width;
         this.height = height;
         this.bitrate = bitrate;
         this.frameRate = frameRate;
-        this.codecName = codecName;
-        this.mimeType = Objects.requireNonNull(mimeType);
+        this.codecName = "OMX.qcom.video.encoder.avc";
+        this.mimeType = MediaFormat.MIMETYPE_VIDEO_AVC;
     }
 
     @NonNull
