@@ -19,6 +19,8 @@ package net.yrom.screenrecorder;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.os.AsyncTask;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.SparseArray;
 
 import java.lang.reflect.Field;
@@ -26,32 +28,14 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
-class Utils {
+public class Utils {
 
+    private static SparseArray<String> sAACProfiles = new SparseArray<>();
+    private static SparseArray<String> sAVCProfiles = new SparseArray<>();
+    private static SparseArray<String> sAVCLevels = new SparseArray<>();
+    private static SparseArray<String> sColorFormats = new SparseArray<>();
 
-    interface Callback {
-        void onResult(MediaCodecInfo[] infos);
-    }
-
-    static final class EncoderFinder extends AsyncTask<String, Void, MediaCodecInfo[]> {
-        private Callback func;
-
-        EncoderFinder(Callback func) {
-            this.func = func;
-        }
-
-        @Override
-        protected MediaCodecInfo[] doInBackground(String... mimeTypes) {
-            return findEncodersByType(mimeTypes[0]);
-        }
-
-        @Override
-        protected void onPostExecute(MediaCodecInfo[] mediaCodecInfos) {
-            func.onResult(mediaCodecInfos);
-        }
-    }
-
-    static void findEncodersByTypeAsync(String mimeType, Callback callback) {
+    public static void findEncodersByTypeAsync(String mimeType, Callback callback) {
         new EncoderFinder(callback).execute(mimeType);
     }
 
@@ -60,36 +44,32 @@ class Utils {
      *
      * @return Returns empty array if not found any encoder supported specified MIME type
      */
-    static MediaCodecInfo[] findEncodersByType(String mimeType) {
+    @NonNull
+    public static MediaCodecInfo[] findEncodersByType(String mimeType) {
         MediaCodecList codecList = new MediaCodecList(MediaCodecList.ALL_CODECS);
-        List<MediaCodecInfo> infos = new ArrayList<>();
-        for (MediaCodecInfo info : codecList.getCodecInfos()) {
-            if (!info.isEncoder()) {
+        List<MediaCodecInfo> codecs = new ArrayList<>();
+        for (MediaCodecInfo codec : codecList.getCodecInfos()) {
+            if (!codec.isEncoder()) {
                 continue;
             }
             try {
-                MediaCodecInfo.CodecCapabilities cap = info.getCapabilitiesForType(mimeType);
+                MediaCodecInfo.CodecCapabilities cap = codec.getCapabilitiesForType(mimeType);
                 if (cap == null) continue;
             } catch (IllegalArgumentException e) {
                 // unsupported
                 continue;
             }
-            infos.add(info);
+            codecs.add(codec);
         }
 
-        return infos.toArray(new MediaCodecInfo[infos.size()]);
+        return codecs.toArray(new MediaCodecInfo[codecs.size()]);
     }
-
-
-    static SparseArray<String> sAACProfiles = new SparseArray<>();
-    static SparseArray<String> sAVCProfiles = new SparseArray<>();
-    static SparseArray<String> sAVCLevels = new SparseArray<>();
-
 
     /**
      * @param avcProfileLevel AVC CodecProfileLevel
      */
-    static String avcProfileLevelToString(MediaCodecInfo.CodecProfileLevel avcProfileLevel) {
+    @NonNull
+    public static String avcProfileLevelToString(@NonNull MediaCodecInfo.CodecProfileLevel avcProfileLevel) {
         if (sAVCProfiles.size() == 0 || sAVCLevels.size() == 0) {
             initProfileLevels();
         }
@@ -113,7 +93,8 @@ class Utils {
         return profile + '-' + level;
     }
 
-    static String[] aacProfiles() {
+    @NonNull
+    public static String[] aacProfiles() {
         if (sAACProfiles.size() == 0) {
             initProfileLevels();
         }
@@ -124,7 +105,8 @@ class Utils {
         return profiles;
     }
 
-    static MediaCodecInfo.CodecProfileLevel toProfileLevel(String str) {
+    @Nullable
+    public static MediaCodecInfo.CodecProfileLevel toProfileLevel(@NonNull String str) {
         if (sAVCProfiles.size() == 0 || sAVCLevels.size() == 0 || sAACProfiles.size() == 0) {
             initProfileLevels();
         }
@@ -164,7 +146,7 @@ class Utils {
         return res.profile > 0 && res.level >= 0 ? res : null;
     }
 
-    private static <T> int keyOfValue(SparseArray<T> array, T value) {
+    private static <T> int keyOfValue(@NonNull SparseArray<T> array, @NonNull T value) {
         int size = array.size();
         for (int i = 0; i < size; i++) {
             T t = array.valueAt(i);
@@ -200,28 +182,14 @@ class Utils {
         }
     }
 
-
-    static SparseArray<String> sColorFormats = new SparseArray<>();
-
-    static String toHumanReadable(int colorFormat) {
+    @NonNull
+    public static String toHumanReadable(int colorFormat) {
         if (sColorFormats.size() == 0) {
             initColorFormatFields();
         }
         int i = sColorFormats.indexOfKey(colorFormat);
         if (i >= 0) return sColorFormats.valueAt(i);
         return "0x" + Integer.toHexString(colorFormat);
-    }
-
-    static int toColorFormat(String str) {
-        if (sColorFormats.size() == 0) {
-            initColorFormatFields();
-        }
-        int color = keyOfValue(sColorFormats, str);
-        if (color > 0) return color;
-        if (str.startsWith("0x")) {
-            return Integer.parseInt(str.substring(2), 16);
-        }
-        return 0;
     }
 
     private static void initColorFormatFields() {
@@ -242,5 +210,27 @@ class Utils {
             }
         }
 
+    }
+
+    interface Callback {
+        void onResult(@NonNull MediaCodecInfo[] codecs);
+    }
+
+    public static final class EncoderFinder extends AsyncTask<String, Void, MediaCodecInfo[]> {
+        private Callback func;
+
+        EncoderFinder(Callback func) {
+            this.func = func;
+        }
+
+        @Override
+        protected MediaCodecInfo[] doInBackground(String... mimeTypes) {
+            return findEncodersByType(mimeTypes[0]);
+        }
+
+        @Override
+        protected void onPostExecute(MediaCodecInfo[] codecs) {
+            func.onResult(codecs);
+        }
     }
 }
