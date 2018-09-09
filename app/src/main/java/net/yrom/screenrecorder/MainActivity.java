@@ -70,7 +70,6 @@ public class MainActivity extends Activity {
     private ToggleButton mAudioToggle;
     private NamedSpinner mVideoResolution;
     private NamedSpinner mVideoFrameRate;
-    private NamedSpinner mIFrameInterval;
     private NamedSpinner mVideoBitrate;
     private NamedSpinner mAudioBitrate;
     private NamedSpinner mAudioSampleRate;
@@ -137,9 +136,9 @@ public class MainActivity extends Activity {
             }
             SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US);
             final File file = new File(dir, format.format(new Date())
-                    + "-w" + video.width + "-h" + video.height
-                    + "-b" + video.bitrate
-                    + "-f" + video.framerate
+                    + "-w" + video.getWidth() + "-h" + video.getHeight()
+                    + "-b" + video.getBitrate()
+                    + "-f" + video.getFrameRate()
                     + ".mp4");
             Log.d("@@", "Create recorder with :" + video + " \n " + audio + "\n " + file);
             mRecorder = newRecorder(mediaProjection, video, audio, file);
@@ -218,7 +217,7 @@ public class MainActivity extends Activity {
             mAvcCodecs = codecs;
             SpinnerAdapter codecsAdapter = createCodecsAdapter(mAvcCodecs);
             mVideoCodec.setAdapter(codecsAdapter);
-            restoreSelections(mVideoCodec, mVideoResolution, mVideoFrameRate, mIFrameInterval, mVideoBitrate);
+            restoreSelections(mVideoCodec, mVideoResolution, mVideoFrameRate, mVideoBitrate);
 
         });
         Utils.findEncodersByTypeAsync(AUDIO_AAC, codecs -> {
@@ -317,11 +316,10 @@ public class MainActivity extends Activity {
         int width = selectedWithHeight[isLandscape ? 0 : 1];
         int height = selectedWithHeight[isLandscape ? 1 : 0];
         int frameRate = getSelectedFrameRate();
-        int iframe = getSelectedIFrameInterval();
         int bitrate = getSelectedVideoBitrate();
         MediaCodecInfo.CodecProfileLevel profileLevel = getSelectedProfileLevel();
         return new VideoEncodeConfig(width, height, bitrate,
-                frameRate, iframe, codec, VIDEO_AVC, profileLevel);
+                frameRate, codec, VIDEO_AVC, profileLevel);
     }
 
     @Override
@@ -346,7 +344,6 @@ public class MainActivity extends Activity {
         mVideoCodec = findViewById(R.id.video_codec);
         mVideoResolution = findViewById(R.id.resolution);
         mVideoFrameRate = findViewById(R.id.framerate);
-        mIFrameInterval = findViewById(R.id.iframe_interval);
         mVideoBitrate = findViewById(R.id.video_bitrate);
         mOrientation = findViewById(R.id.orientation);
 
@@ -727,10 +724,6 @@ public class MainActivity extends Activity {
         return Integer.parseInt(selectedItem) * 1000;
     }
 
-    private int getSelectedIFrameInterval() {
-        return (mIFrameInterval != null) ? Integer.parseInt(mIFrameInterval.getSelectedItem()) : 5;
-    }
-
     @NonNull
     private SpinnerAdapter createCodecsAdapter(@NonNull MediaCodecInfo[] codecInfos) {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, codecInfoNames(codecInfos));
@@ -813,7 +806,6 @@ public class MainActivity extends Activity {
         for (NamedSpinner spinner : new NamedSpinner[]{
                 mVideoResolution,
                 mVideoFrameRate,
-                mIFrameInterval,
                 mVideoBitrate,
                 mAudioBitrate,
                 mAudioSampleRate,
