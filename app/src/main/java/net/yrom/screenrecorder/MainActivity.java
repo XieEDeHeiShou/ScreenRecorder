@@ -279,16 +279,7 @@ public class MainActivity extends Activity {
     @Nullable
     private AudioEncodeConfig createAudioConfig() {
         if (!mAudioToggle.isChecked()) return null;
-        String codec = getSelectedAudioCodec();
-        if (codec == null) {
-            return null;
-        }
-        int bitrate = getSelectedAudioBitrate();
-        int sampleRate = getSelectedAudioSampleRate();
-        int channelCount = getSelectedAudioChannelCount();
-        int profile = getSelectedAudioProfile();
-
-        return new AudioEncodeConfig(codec, AUDIO_AAC, bitrate, sampleRate, channelCount, profile);
+        return new AudioEncodeConfig();
     }
 
     @Override
@@ -742,11 +733,6 @@ public class MainActivity extends Activity {
         return mVideoProfileLevel != null ? Utils.toProfileLevel(mVideoProfileLevel.getSelectedItem()) : null;
     }
 
-    private int getSelectedAudioBitrate() {
-        if (mAudioBitrate == null) throw new IllegalStateException();
-        Integer selectedItem = mAudioBitrate.getSelectedItem();
-        return selectedItem * 1000; // bps
-    }
 
     @NonNull
     private int[] getSelectedWithHeight() {
@@ -756,29 +742,6 @@ public class MainActivity extends Activity {
         if (xes.length != 2) throw new IllegalArgumentException();
         return new int[]{Integer.parseInt(xes[0]), Integer.parseInt(xes[1])};
 
-    }
-
-    private int getSelectedAudioProfile() {
-        if (mAudioProfile == null) throw new IllegalStateException();
-        String selectedItem = mAudioProfile.getSelectedItem();
-        MediaCodecInfo.CodecProfileLevel profileLevel = Utils.toProfileLevel(selectedItem);
-        return profileLevel == null ? MediaCodecInfo.CodecProfileLevel.AACObjectMain : profileLevel.profile;
-    }
-
-    private int getSelectedAudioChannelCount() {
-        if (mAudioChannelCount == null) throw new IllegalStateException();
-        String selectedItem = mAudioChannelCount.getSelectedItem().toString();
-        return Integer.parseInt(selectedItem);
-    }
-
-    @Nullable
-    private String getSelectedAudioCodec() {
-        return mAudioCodec == null ? null : mAudioCodec.getSelectedItem();
-    }
-
-    private int getSelectedAudioSampleRate() {
-        if (mAudioSampleRate == null) throw new IllegalStateException();
-        return mAudioSampleRate.getSelectedItem();
     }
 
     private void toast(@NonNull String message, @NonNull Object... args) {
