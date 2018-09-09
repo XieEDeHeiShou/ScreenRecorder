@@ -64,6 +64,7 @@ import static net.yrom.screenrecorder.ScreenRecorder.VIDEO_AVC;
 public class MainActivity extends Activity {
     private static final int REQUEST_MEDIA_PROJECTION = 1;
     private static final int REQUEST_PERMISSIONS = 2;
+    private static final String TAG = "MainActivity";
     // members below will be initialized in onCreate()
     private MediaProjectionManager mMediaProjectionManager;
     private Button mButton;
@@ -81,7 +82,6 @@ public class MainActivity extends Activity {
     private NamedSpinner mOrientation;
     private MediaCodecInfo[] mAvcCodecs; // avc codecs
     private MediaCodecInfo[] mAacCodecs; // aac codecs
-
     /**
      * <b>NOTE:</b>
      * {@code ScreenRecorder} should run in background Service
@@ -93,6 +93,56 @@ public class MainActivity extends Activity {
     private static File getSavingDir() {
         return new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES),
                 "ScreenCaptures");
+    }
+
+    @NonNull
+    private static String[] codecInfoNames(@NonNull MediaCodecInfo[] codecs) {
+        String[] names = new String[codecs.length];
+        for (int i = 0; i < codecs.length; i++) {
+            names[i] = codecs[i].getName();
+        }
+        return names;
+    }
+
+    /**
+     * Print information of all MediaCodec on this device.
+     */
+    private static void logCodecs(@NonNull MediaCodecInfo[] codecs, @NonNull String mimeType) {
+        for (MediaCodecInfo codec : codecs) {
+            StringBuilder builder = new StringBuilder(512);
+            MediaCodecInfo.CodecCapabilities caps = codec.getCapabilitiesForType(mimeType);
+            builder.append("Encoder '").append(codec.getName()).append('\'')
+                    .append("\n  supported : ")
+                    .append(Arrays.toString(codec.getSupportedTypes()));
+            MediaCodecInfo.VideoCapabilities videoCaps = caps.getVideoCapabilities();
+            if (videoCaps != null) {
+                builder.append("\n  Video capabilities:")
+                        .append("\n  Widths: ").append(videoCaps.getSupportedWidths())
+                        .append("\n  Heights: ").append(videoCaps.getSupportedHeights())
+                        .append("\n  Frame Rates: ").append(videoCaps.getSupportedFrameRates())
+                        .append("\n  Bitrate: ").append(videoCaps.getBitrateRange());
+                if (VIDEO_AVC.equals(mimeType)) {
+                    MediaCodecInfo.CodecProfileLevel[] levels = caps.profileLevels;
+
+                    builder.append("\n  Profile-levels: ");
+                    for (MediaCodecInfo.CodecProfileLevel level : levels) {
+                        builder.append("\n  ").append(Utils.avcProfileLevelToString(level));
+                    }
+                }
+                builder.append("\n  Color-formats: ");
+                for (int c : caps.colorFormats) {
+                    builder.append("\n  ").append(Utils.toHumanReadable(c));
+                }
+            }
+            MediaCodecInfo.AudioCapabilities audioCaps = caps.getAudioCapabilities();
+            if (audioCaps != null) {
+                builder.append("\n Audio capabilities:")
+                        .append("\n Sample Rates: ").append(Arrays.toString(audioCaps.getSupportedSampleRates()))
+                        .append("\n Bit Rates: ").append(audioCaps.getBitrateRange())
+                        .append("\n Max channels: ").append(audioCaps.getMaxInputChannelCount());
+            }
+            Log.i("@@@", builder.toString());
+        }
     }
 
     @Override
@@ -151,56 +201,6 @@ public class MainActivity extends Activity {
             } else {
                 cancelRecorder();
             }
-        }
-    }
-
-    @NonNull
-    private static String[] codecInfoNames(@NonNull MediaCodecInfo[] codecs) {
-        String[] names = new String[codecs.length];
-        for (int i = 0; i < codecs.length; i++) {
-            names[i] = codecs[i].getName();
-        }
-        return names;
-    }
-
-    /**
-     * Print information of all MediaCodec on this device.
-     */
-    private static void logCodecs(@NonNull MediaCodecInfo[] codecs, @NonNull String mimeType) {
-        for (MediaCodecInfo codec : codecs) {
-            StringBuilder builder = new StringBuilder(512);
-            MediaCodecInfo.CodecCapabilities caps = codec.getCapabilitiesForType(mimeType);
-            builder.append("Encoder '").append(codec.getName()).append('\'')
-                    .append("\n  supported : ")
-                    .append(Arrays.toString(codec.getSupportedTypes()));
-            MediaCodecInfo.VideoCapabilities videoCaps = caps.getVideoCapabilities();
-            if (videoCaps != null) {
-                builder.append("\n  Video capabilities:")
-                        .append("\n  Widths: ").append(videoCaps.getSupportedWidths())
-                        .append("\n  Heights: ").append(videoCaps.getSupportedHeights())
-                        .append("\n  Frame Rates: ").append(videoCaps.getSupportedFrameRates())
-                        .append("\n  Bitrate: ").append(videoCaps.getBitrateRange());
-                if (VIDEO_AVC.equals(mimeType)) {
-                    MediaCodecInfo.CodecProfileLevel[] levels = caps.profileLevels;
-
-                    builder.append("\n  Profile-levels: ");
-                    for (MediaCodecInfo.CodecProfileLevel level : levels) {
-                        builder.append("\n  ").append(Utils.avcProfileLevelToString(level));
-                    }
-                }
-                builder.append("\n  Color-formats: ");
-                for (int c : caps.colorFormats) {
-                    builder.append("\n  ").append(Utils.toHumanReadable(c));
-                }
-            }
-            MediaCodecInfo.AudioCapabilities audioCaps = caps.getAudioCapabilities();
-            if (audioCaps != null) {
-                builder.append("\n Audio capabilities:")
-                        .append("\n Sample Rates: ").append(Arrays.toString(audioCaps.getSupportedSampleRates()))
-                        .append("\n Bit Rates: ").append(audioCaps.getBitrateRange())
-                        .append("\n Max channels: ").append(audioCaps.getMaxInputChannelCount());
-            }
-            Log.i("@@@", builder.toString());
         }
     }
 
@@ -269,8 +269,8 @@ public class MainActivity extends Activity {
                 if (startTime <= 0) {
                     startTime = presentationTimeUs;
                 }
-                long time = (presentationTimeUs - startTime) / 1000;
-                Log.d(TAG, "onRecording: " + time);
+//                long time = (presentationTimeUs - startTime) / 1000;
+//                Log.d(TAG, "onRecording: " + time);// VERBOSE
             }
         });
         return r;
@@ -318,6 +318,7 @@ public class MainActivity extends Activity {
         int frameRate = getSelectedFrameRate();
         int bitrate = getSelectedVideoBitrate();
         MediaCodecInfo.CodecProfileLevel profileLevel = getSelectedProfileLevel();
+        Log.e(TAG, "createVideoConfig: " + profileLevel);
         return new VideoEncodeConfig(width, height, bitrate,
                 frameRate, codec, VIDEO_AVC, profileLevel);
     }
